@@ -317,6 +317,14 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
+    function hasChild(address _user) external view returns (bool){
+        Partner memory user = partnersByWalletAddress[_user];
+        uint256 user_position = user.position_id;
+        Partner memory right_child = partnersByPositionId[user_position*2+1];
+        Partner memory left_child = partnersByPositionId[user_position*2+2];
+        return  right_child.isValue || left_child.isValue;
+    }
+
     function MyStakingBalance() internal returns (uint256) {
         bytes memory payload = abi.encodeWithSignature(
             "getTotalUserStake(address)",
@@ -357,15 +365,6 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return partnersByPositionId[_position_id];
     }
 
-    // function calcNextChilds(uint256 _position_id)
-    //     public
-    //     pure
-    //     returns (uint256, uint256)
-    // {
-    //     uint256 left_child_position = _position_id * 2 + 1;
-    //     uint256 right_child_position = _position_id * 2 + 2;
-    //     return (left_child_position, right_child_position);
-    // }
 
     function calcUplineFromPositionId(
         uint256 _position_id
@@ -708,7 +707,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
 
     function updateUplinesUniLevelRewards(
         uint256 _position_id
-    ) public payable onlyOwner {
+    ) internal onlyOwner {
         require(isValidPositionId(_position_id), "3");
         bool not_done = true;
         while (not_done) {
@@ -914,10 +913,10 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return transactionLogsByAddress[msg.sender];
     }
 
-    function allBonusesHistory(
-        address _wallet_address
-    ) public onlyOwner returns (TransactionsLog[] memory) {
-        require(isValidWalletAddress(), "5");
-        return transactionLogsByAddress[_wallet_address];
-    }
+//     function allBonusesHistory(
+//         address _wallet_address
+//     ) public onlyOwner returns (TransactionsLog[] memory) {
+//         require(isValidWalletAddress(), "5");
+//         return transactionLogsByAddress[_wallet_address];
+//     }
 }
