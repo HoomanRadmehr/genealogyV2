@@ -9,26 +9,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Genealogy is Ownable, ReentrancyGuard {
 
-    mapping(uint256 => Partner) public partnersByPositionId;
-    mapping(address => Partner) partnersByWalletAddress;
-    mapping(string => Partner) partnersByEbrCode;
-    mapping(address => TransactionsLog[]) transactionLogsByAddress;
-    mapping(address => string[]) invitationLinksByreferallWalletAdress;
-    mapping(address => string[]) invitationEbrPartnersByreferallWalletAddress;
-    uint256[] Childs;
-    uint256[] assume_full_fill_level_partners;
-    uint256[] each_level_childs_number;
-    string[] refferalCodes;
-    uint256 position_id_from_ebr_code;
-    uint256 partnerCount;
-    uint256[] public position_ids;
-    uint256 upline_position_id;
-    address _owner;
-    uint256 new_position_id;
-    address public StakingContractAddress;
-    address public DappTokenContractAddress;
-    address[] walletAddresses;
-
     using strings for *;
     struct Partner {
         uint256 position_id;
@@ -46,44 +26,14 @@ contract Genealogy is Ownable, ReentrancyGuard {
         bool isValue;
     }
 
-    constructor(
-        address stakeFactoryContractAddress,
-        address dappTokenContractAddress
-    ) payable {
-        _owner = msg.sender;
-        StakingContractAddress = stakeFactoryContractAddress;
-        DappTokenContractAddress = dappTokenContractAddress;
-        Partner memory partner = Partner(
-            0,
-            0,
-            msg.sender,
-            "admin",
-            "none",
-            0,
-            0,
-            0,
-            0,
-            0,
-            block.timestamp,
-            block.timestamp,
-            true
-        );
-        partnersByEbrCode["admin"] = partner;
-        position_ids.push(0);
-        partnersByPositionId[0] = partner;
-        partnersByWalletAddress[msg.sender] = partner;
-        walletAddresses.push(msg.sender);
-        partnerCount = 1;
-    }
-
     function log_2(uint256 number) internal pure returns (uint8) {
         require(number > 0, "0");
         for (uint8 n = 0; n < 256; n++) {
-            if (number >= 2 ** n && number < 2 ** (n + 1)) {
+            if (number >= 2**n && number < 2**(n + 1)) {
                 return n;
+                }
             }
         }
-    }
 
     function stringToUint(string memory s) internal pure returns (uint256) {
         bytes memory b = bytes(s);
@@ -122,9 +72,60 @@ contract Genealogy is Ownable, ReentrancyGuard {
         uint256 timestamp;
     }
 
-    function isValidEbrCode(
-        string memory _ebr_code
-    ) internal view returns (bool) {
+    mapping(uint256 => Partner) public partnersByPositionId;
+    mapping(address => Partner) public partnersByWalletAddress;
+    mapping(string => Partner) partnersByEbrCode;
+    mapping(address => TransactionsLog[]) public transactionLogsByAddress;
+    mapping(address => string[]) invitationLinksByreferallWalletAdress;
+    mapping(address => string[]) invitationEbrPartnersByreferallWalletAddress;
+    uint256[] Childs;
+    uint256[] assume_full_fill_level_partners;
+    uint256[] each_level_childs_number;
+    string[] refferalCodes;
+    uint256 position_id_from_ebr_code;
+    uint256 partnerCount;
+    uint256[] position_ids;
+    uint256 upline_position_id;
+    address _owner;
+    uint256 new_position_id;
+    address public StakingContractAddress;
+    address public DappTokenContractAddress;
+    address[] walletAddresses;
+
+    constructor(address stakeContractAddress, address dappTokenContractAddress)
+        payable
+    {
+        _owner=msg.sender;
+        StakingContractAddress = stakeContractAddress;
+        DappTokenContractAddress = dappTokenContractAddress;
+        Partner memory partner = Partner(
+            0,
+            0,
+            msg.sender,
+            "admin",
+            "none",
+            0,
+            0,
+            0,
+            0,
+            0,
+            block.timestamp,
+            block.timestamp,
+            true
+        );
+        partnersByEbrCode["admin"] = partner;
+        position_ids.push(0);
+        partnersByPositionId[0] = partner;
+        partnersByWalletAddress[msg.sender] = partner;
+        walletAddresses.push(msg.sender);
+        partnerCount=1;
+    }
+
+    function isValidEbrCode(string memory _ebr_code)
+        internal
+        view
+        returns (bool)
+    {
         if (partnersByEbrCode[_ebr_code].isValue) {
             return true;
         } else {
@@ -132,9 +133,11 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
-    function isValidPositionId(
-        uint256 _position_id
-    ) internal view returns (bool) {
+    function isValidPositionId(uint256 _position_id)
+        internal
+        view
+        returns (bool)
+    {
         if (partnersByPositionId[_position_id].isValue) {
             return true;
         } else {
@@ -142,9 +145,11 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
-    function isValidDirection(
-        string memory _direction
-    ) internal pure returns (bool) {
+    function isValidDirection(string memory _direction)
+        internal
+        pure
+        returns (bool)
+    {
         if (
             keccak256(abi.encodePacked(_direction)) ==
             keccak256(abi.encodePacked("l")) ||
@@ -157,9 +162,11 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
-    function getDirectionByPositionId(
-        uint256 _position_id
-    ) internal view returns (string memory) {
+    function getDirectionByPositionId(uint256 _position_id)
+        internal
+        view
+        returns (string memory)
+    {
         if (_position_id % 2 == 0) {
             return "r";
         } else {
@@ -167,9 +174,11 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
-    function IsValidEbrCode(
-        string memory _ebr_code
-    ) internal view returns (bool) {
+    function IsValidEbrCode(string memory _ebr_code)
+        internal
+        view
+        returns (bool)
+    {
         if (partnersByEbrCode[_ebr_code].isValue) {
             return true;
         } else {
@@ -181,9 +190,9 @@ contract Genealogy is Ownable, ReentrancyGuard {
         refferalCodes.push(_refferalCode);
     }
 
-    function addInvitaionLinksByWalletAddress(
-        string memory _refferalLink
-    ) internal {
+    function addInvitaionLinksByWalletAddress(string memory _refferalLink)
+        internal
+    {
         invitationLinksByreferallWalletAdress[msg.sender].push(_refferalLink);
     }
 
@@ -208,9 +217,11 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return invitationLinksByreferallWalletAdress[msg.sender];
     }
 
-    function isValidInvitationLink(
-        string memory _invitation_link
-    ) internal view returns (bool) {
+    function isValidInvitationLink(string memory _invitation_link)
+        internal
+        view
+        returns (bool)
+    {
         for (uint256 i = 0; i < refferalCodes.length; i++) {
             if (
                 keccak256(abi.encodePacked(refferalCodes[i])) ==
@@ -226,10 +237,19 @@ contract Genealogy is Ownable, ReentrancyGuard {
         string memory _invitation_ebr_code,
         uint256 _position_id
     ) public returns (string memory) {
-        require(IsValidEbrCode(_invitation_ebr_code) == false, "1");
+        require(
+           IsValidEbrCode(_invitation_ebr_code) == false,
+           "1"
+        );
         uint256 _upline = calcUplineFromPositionId(_position_id);
-        require(isValidPositionId(_upline), "2");
-        require(isValidPositionId(_position_id) == false, "3");
+        require(
+           isValidPositionId(_upline),
+            "2"
+        );
+        require(
+           isValidPositionId(_position_id) == false,
+            "3"
+        );
         Partner memory refferal_partner = partnersByWalletAddress[msg.sender];
         string memory refferalCode = createReffralString(
             _invitation_ebr_code,
@@ -242,14 +262,18 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return refferalCode;
     }
 
-    function addPartnerFromLink(
-        string memory _invitation_link // returns (string memory result)
-    ) public {
+    function addPartnerFromLink(string memory _invitation_link)
+        public
+        // returns (string memory result)
+    {
         require(userIsStaker(), "4");
         string memory direction;
         string memory invitation_link = _invitation_link;
         require(isValidWalletAddress() == false, "5");
-        require(isValidInvitationLink(invitation_link), "1");
+        require(
+            isValidInvitationLink(invitation_link),
+            "1"
+       );
         strings.slice memory s = invitation_link.toSlice();
         strings.slice memory delim = "-".toSlice();
         string[] memory parts = new string[](s.count(delim));
@@ -259,7 +283,10 @@ contract Genealogy is Ownable, ReentrancyGuard {
 
         string memory invited_ebr_code = parts[0];
         uint256 position_id = stringToUint(parts[2]);
-        require(isValidPositionId(position_id) == false, "1");
+        require(
+            isValidPositionId(position_id) == false,
+            "1"
+        );
         uint256 upline_position_id = calcUplineFromPositionId(position_id);
         string memory upline_ebr_code = partnersByPositionId[upline_position_id]
             .ebr_code;
@@ -305,8 +332,14 @@ contract Genealogy is Ownable, ReentrancyGuard {
         uint256 _upline_postion_id,
         string memory _direction
     ) internal view returns (uint256) {
-        require(isValidDirection(_direction) == true, "6");
-        require(isValidPositionId(_upline_postion_id) == true, "2");
+        require(
+            isValidDirection(_direction) == true,
+            "6"
+        );
+        require(
+           isValidPositionId(_upline_postion_id) == true,
+            "2"
+        );
         if (
             keccak256(abi.encodePacked(_direction)) ==
             keccak256(abi.encodePacked("r"))
@@ -317,30 +350,11 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
-    function hasChild(address _user) external view returns (bool){
-        Partner memory user = partnersByWalletAddress[_user];
-        uint256 user_position = user.position_id;
-        Partner memory right_child = partnersByPositionId[user_position*2+1];
-        Partner memory left_child = partnersByPositionId[user_position*2+2];
-        return  right_child.isValue || left_child.isValue;
-    }
-
-    function MyStakingBalance() internal returns (uint256) {
-        bytes memory payload = abi.encodeWithSignature(
-            "getTotalUserStake(address)",
-            msg.sender
-        );
-        (bool success, bytes memory returnData) = StakingContractAddress.call(
-            payload
-        );
-        uint256 balance = abi.decode(returnData, (uint256));
-        return balance;
-    }
-
-
-    function getPositionIdFromEbrCode(
-        string memory _ebr_code
-    ) internal onlyOwner returns (string memory) {
+    function getPositionIdFromEbrCode(string memory _ebr_code)
+        internal
+        onlyOwner
+        returns (string memory)
+    {
         if (isValidEbrCode(_ebr_code) == true) {
             Partner storage partner = partnersByEbrCode[_ebr_code];
             position_id_from_ebr_code = partner.position_id;
@@ -350,6 +364,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
+    
     function getPositionIdList() internal view returns (uint256[] memory) {
         return position_ids;
     }
@@ -358,17 +373,31 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return position_ids.length;
     }
 
-    function getPartner(
-        uint256 _position_id
-    ) internal view onlyOwner returns (Partner memory) {
+    function getPartner(uint256 _position_id)
+        internal
+        view
+        onlyOwner
+        returns (Partner memory)
+    {
         require(isValidPositionId(_position_id), "3");
         return partnersByPositionId[_position_id];
     }
 
+    // function calcNextChilds(uint256 _position_id)
+    //     public
+    //     pure
+    //     returns (uint256, uint256)
+    // {
+    //     uint256 left_child_position = _position_id * 2 + 1;
+    //     uint256 right_child_position = _position_id * 2 + 2;
+    //     return (left_child_position, right_child_position);
+    // }
 
-    function calcUplineFromPositionId(
-        uint256 _position_id
-    ) internal pure returns (uint256) {
+    function calcUplineFromPositionId(uint256 _position_id)
+        internal
+        pure
+        returns (uint256)
+    {
         if (_position_id == 1 || _position_id == 0) {
             return 0;
         }
@@ -379,9 +408,12 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
-    function getBalanceByPositionId(
-        uint256 _position_id
-    ) internal view onlyOwner returns (uint256) {
+    function getBalanceByPositionId(uint256 _position_id)
+        internal
+        view
+        onlyOwner
+        returns (uint256)
+    {
         Partner memory partner = partnersByPositionId[_position_id];
         require(isValidPositionId(_position_id), "3");
         return partner.balance;
@@ -399,9 +431,11 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return result;
     }
 
-    function stakingBalance(
-        address _staker_addr
-    ) internal onlyOwner returns (uint256) {
+    function stakingBalance(address _staker_addr)
+        internal
+        onlyOwner
+        returns (uint256)
+    {
         bytes memory payload = abi.encodeWithSignature(
             "getTotalUserStake(address)",
             _staker_addr
@@ -413,7 +447,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return balance;
     }
 
-    function MyTotalStakingBalances() internal returns (uint256) {
+    function MyStakingBalance() internal returns (uint256) {
         bytes memory payload = abi.encodeWithSignature(
             "getTotalUserStake(address)",
             msg.sender
@@ -425,16 +459,18 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return balance;
     }
 
-    function updateBalance(
-        address _wallet_address
-    ) internal onlyOwner returns (uint256) {
+    function updateBalance(address _wallet_address)
+        internal
+        onlyOwner
+        returns (uint256)
+    {
         Partner memory partner = partnersByWalletAddress[_wallet_address];
         uint256 new_balance = stakingBalance(_wallet_address);
         partner.balance = new_balance;
         return new_balance;
     }
 
-    function updateBalances() public onlyOwner {
+    function updateBalances() internal onlyOwner {
         for (uint256 i = 0; i < walletAddresses.length; i++) {
             updateBalance(walletAddresses[i]);
         }
@@ -450,10 +486,10 @@ contract Genealogy is Ownable, ReentrancyGuard {
         partnersByEbrCode[ebr_code] = partner;
     }
 
-    function updateUplinesBalances(
-        uint256 _position_id,
-        uint256 amount
-    ) public onlyOwner {
+    function updateUplinesBalances(uint256 _position_id, uint256 amount)
+        public
+        onlyOwner
+    {
         require(isValidPositionId(_position_id), "3");
         bool not_done = true;
         uint256 upline_position_id = calcUplineFromPositionId(_position_id);
@@ -554,28 +590,28 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return left_child;
     }
 
-    function getChildsByLevel(
-        uint256 _position_id,
-        uint256 _level
-    ) public returns (uint256[] memory) {
-        delete Childs;
-        for (uint256 i = 1; i <= _level; i++) {
-            uint256 left_child = calcFirstLeftChild(_position_id);
-            uint256 sub_child_numbers = 2 ** i;
-            for (uint256 j = 0; j < sub_child_numbers; j++) {
-                uint256 sub_child = left_child + j;
-                Childs.push(sub_child);
-                _position_id = left_child;
-            }
-        }
-        return Childs;
-    }
+    // function getChildsByLevel(uint256 _position_id, uint256 _level)
+    //     public
+    //     returns (uint256[] memory)
+    // {
+    //     delete Childs;
+    //     for (uint256 i = 1; i <= _level; i++) {
+    //         uint256 left_child = calcFirstLeftChild(_position_id);
+    //         uint256 sub_child_numbers = 2**i;
+    //         for (uint256 j = 0; j < sub_child_numbers; j++) {
+    //             uint256 sub_child = left_child + j;
+    //             Childs.push(sub_child);
+    //             _position_id = left_child;
+    //         }
+    //     }
+    //     return Childs;
+    // }
 
     function getChildsCountByLevel(uint256 _level) internal returns (uint256) {
         delete each_level_childs_number;
         uint256 result;
         for (uint256 i = 1; i <= _level; i++) {
-            uint256 _level_childs_number = 2 ** i;
+            uint256 _level_childs_number = 2**i;
             each_level_childs_number.push(_level_childs_number);
         }
         for (uint256 i = 0; i < each_level_childs_number.length; i++) {
@@ -584,18 +620,19 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
         return result;
     }
-
-    function getFullLevelByChildsCount(
-        uint256 _childs_number
-    ) internal returns (uint256 result) {
+    
+    function getFullLevelByChildsCount(uint256 _childs_number)
+        internal
+        returns (uint256 result)
+    {
         uint256 result = log_2(_childs_number);
         return result;
     }
 
-    function getChildsInSpecificLevel(
-        uint256 _position_id,
-        uint256 _level
-    ) internal returns (uint256[] memory) {
+    function getChildsInSpecificLevel(uint256 _position_id, uint256 _level)
+        internal
+        returns (uint256[] memory)
+    {
         delete Childs;
         if (_level == 0) {
             Childs.push(_position_id);
@@ -605,7 +642,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
             uint256 left_child = calcFirstLeftChild(_position_id);
             _position_id = left_child;
             if (i == _level) {
-                uint256 sub_child_numbers = 2 ** i;
+                uint256 sub_child_numbers = 2**i;
                 for (uint256 j = 0; j < sub_child_numbers; j++) {
                     uint256 sub_child = left_child + j;
                     Childs.push(sub_child);
@@ -688,9 +725,25 @@ contract Genealogy is Ownable, ReentrancyGuard {
         IERC20(DappTokenContractAddress).transfer(_to, _amount);
     }
 
-    function calcUplinesPositionIdsFromPositionId(
-        uint256 _position_id
-    ) internal returns (uint256[] memory) {
+    function calcPartnerStakingReward(address _staker_addr)
+        internal
+        returns (uint256)
+    {
+        bytes memory payload = abi.encodeWithSignature(
+            "getTotalUserRewards(address)",
+            _staker_addr
+        );
+        (bool success, bytes memory returnData) = StakingContractAddress.call(
+            payload
+        );
+        uint256 reward = abi.decode(returnData, (uint256));
+        return reward;
+    }
+
+    function calcUplinesPositionIdsFromPositionId(uint256 _position_id)
+        internal
+        returns (uint256[] memory)
+    {
         delete Childs;
         require(isValidPositionId(_position_id), "3");
         bool not_done = true;
@@ -705,9 +758,11 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return Childs;
     }
 
-    function updateUplinesUniLevelRewards(
-        uint256 _position_id
-    ) internal onlyOwner {
+    function updateUplinesUniLevelRewards(uint256 _position_id)
+        public
+        payable
+        onlyOwner
+    {
         require(isValidPositionId(_position_id), "3");
         bool not_done = true;
         while (not_done) {
@@ -749,11 +804,12 @@ contract Genealogy is Ownable, ReentrancyGuard {
         }
     }
 
-    function getStakerRewardsUpToNow(
-        address _staker_addr
-    ) internal returns (uint256) {
+    function getStakerRewardsUpToNow(address _staker_addr)
+        internal
+        returns (uint256)
+    {
         bytes memory payload = abi.encodeWithSignature(
-            "getTotalUserRewards(address)",
+            "getTotalUserStake(address)",
             _staker_addr
         );
         (bool success, bytes memory returnData) = StakingContractAddress.call(
@@ -763,7 +819,15 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return _reward;
     }
 
-    function binaryBonus() public onlyOwner {
+    function hasChild(address _user) external payable returns (bool){
+        Partner memory user = partnersByWalletAddress[_user];
+        uint256 user_position = user.position_id;
+        Partner memory right_child = partnersByPositionId[user_position*2+1];
+        Partner memory left_child = partnersByPositionId[user_position*2+2];
+        return  right_child.isValue || left_child.isValue;
+    }
+
+    function binaryBonus() public onlyOwner  {
         for (uint256 i = 0; i < position_ids.length; i++) {
             Partner memory partner = partnersByPositionId[position_ids[i]];
             address partner_wallet_address = partner.wallet_address;
@@ -810,10 +874,10 @@ contract Genealogy is Ownable, ReentrancyGuard {
         // return "binary and matching bonuses shared successfully.";
     }
 
-    function matchingBonus(
-        uint256 _position_id,
-        uint256 _binary_reward
-    ) internal onlyOwner {
+    function matchingBonus(uint256 _position_id, uint256 _binary_reward)
+        internal
+        onlyOwner
+    {
         uint256 _level_one_reward = (_binary_reward * 5) / 100;
         uint256 _level_two_reward = (_binary_reward * 3) / 100;
         uint256 _level_three_reward = (_binary_reward * 2) / 100;
@@ -908,15 +972,17 @@ contract Genealogy is Ownable, ReentrancyGuard {
         );
     }
 
-    function partnerBonusesHistory() public returns (TransactionsLog[] memory) {
-        require(isValidWalletAddress(), "5");
-        return transactionLogsByAddress[msg.sender];
-    }
+    // function partnerBonusesHistory() public returns (TransactionsLog[] memory) {
+    //     require(isValidWalletAddress(), "5");
+    //     return transactionLogsByAddress[msg.sender];
+    // }
 
-//     function allBonusesHistory(
-//         address _wallet_address
-//     ) public onlyOwner returns (TransactionsLog[] memory) {
-//         require(isValidWalletAddress(), "5");
-//         return transactionLogsByAddress[_wallet_address];
-//     }
+    // function allBonusesHistory(address _wallet_address)
+    //     public
+    //     onlyOwner
+    //     returns (TransactionsLog[] memory)
+    // {
+    //     require(isValidWalletAddress(), "5");
+    //     return transactionLogsByAddress[_wallet_address];
+    // }
 }
