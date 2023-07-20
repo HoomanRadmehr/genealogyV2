@@ -431,6 +431,18 @@ contract Genealogy is Ownable, ReentrancyGuard {
         return result;
     }
 
+    function _userIsStaker(address partner_wallet) internal returns (bool result) {
+        bytes memory payload = abi.encodeWithSignature(
+            "isStaker(address)",
+            partner_wallet
+        );
+        (bool success, bytes memory returnData) = StakingContractAddress.call(
+            payload
+        );
+        bool result = abi.decode(returnData, (bool));
+        return result;
+    }
+
     function stakingBalance(address _staker_addr)
         internal
         onlyOwner
@@ -623,10 +635,9 @@ contract Genealogy is Ownable, ReentrancyGuard {
     
     function getFullLevelByChildsCount(uint256 _childs_number)
         internal
-        returns (uint256 result)
+        returns (uint256)
     {
-        uint256 result = log_2(_childs_number);
-        return result;
+        return log_2(_childs_number);
     }
 
     function getChildsInSpecificLevel(uint256 _position_id, uint256 _level)
@@ -831,48 +842,50 @@ contract Genealogy is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < position_ids.length; i++) {
             Partner memory partner = partnersByPositionId[position_ids[i]];
             address partner_wallet_address = partner.wallet_address;
-            uint256 left_balance = partner.sum_left_balance;
-            uint256 right_balance = partner.sum_right_balance;
-            if (left_balance < right_balance) {
-                uint256 binary_reward = left_balance / 10;
-                matchingBonus(position_ids[i], binary_reward);
-                transferFromDappContract(partner_wallet_address, binary_reward);
-                TransactionsLog memory transactionslog = TransactionsLog(
-                    partner_wallet_address,
-                    binary_reward,
-                    "binary_reward",
-                    block.timestamp
-                );
-                transactionLogsByAddress[partner_wallet_address].push(
-                    transactionslog
-                );
-                uint256 left_and_right_balance_difference = right_balance -
-                    left_balance;
-                partner.sum_left_balance = 0;
-                partner.sum_right_balance = left_and_right_balance_difference;
-                updatePartner(partner);
-            } else {
-                uint256 binary_reward = right_balance / 10;
-                matchingBonus(position_ids[i], binary_reward);
-                transferFromDappContract(partner_wallet_address, binary_reward);
-                TransactionsLog memory transactionslog = TransactionsLog(
-                    partner_wallet_address,
-                    binary_reward,
-                    "binary_reward",
-                    block.timestamp
-                );
-                transactionLogsByAddress[partner_wallet_address].push(
-                    transactionslog
-                );
-                uint256 left_and_right_balance_difference = left_balance -
-                    right_balance;
-                partner.sum_left_balance = left_and_right_balance_difference;
-                partner.sum_right_balance = 0;
-                updatePartner(partner);
+            if (_userIsStaker(partner_wallet_address)){
+                uint256 left_balance = partner.sum_left_balance;
+                uint256 right_balance = partner.sum_right_balance;
+                if (left_balance < right_balance) {
+                    uint256 binary_reward = left_balance / 10;
+                    matchingBonus(position_ids[i], binary_reward);
+                    transferFromDappContract(partner_wallet_address, binary_reward);
+                    TransactionsLog memory transactionslog = TransactionsLog(
+                        partner_wallet_address,
+                        binary_reward,
+                        "binary_reward",
+                        block.timestamp
+                    );
+                    transactionLogsByAddress[partner_wallet_address].push(
+                        transactionslog
+                    );
+                    uint256 left_and_right_balance_difference = right_balance -
+                        left_balance;
+                    partner.sum_left_balance = 0;
+                    partner.sum_right_balance = left_and_right_balance_difference;
+                    updatePartner(partner);
+                } else {
+                    uint256 binary_reward = right_balance / 10;
+                    matchingBonus(position_ids[i], binary_reward);
+                    transferFromDappContract(partner_wallet_address, binary_reward);
+                    TransactionsLog memory transactionslog = TransactionsLog(
+                        partner_wallet_address,
+                        binary_reward,
+                        "binary_reward",
+                        block.timestamp
+                    );
+                    transactionLogsByAddress[partner_wallet_address].push(
+                        transactionslog
+                    );
+                    uint256 left_and_right_balance_difference = left_balance -
+                        right_balance;
+                    partner.sum_left_balance = left_and_right_balance_difference;
+                    partner.sum_right_balance = 0;
+                    updatePartner(partner);
+                }
             }
-        }
-        // return "binary and matching bonuses shared successfully.";
+        }// return "binary and matching bonuses shared successfully.";
     }
+    
 
     function matchingBonus(uint256 _position_id, uint256 _binary_reward)
         internal
