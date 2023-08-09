@@ -998,4 +998,9 @@ contract Genealogy is Ownable, ReentrancyGuard {
     //     require(isValidWalletAddress(), "5");
     //     return transactionLogsByAddress[_wallet_address];
     // }
+    // function transferTokenFromContract(address _tokenAddress,address reciever,uint256 amount) public onlyOwner {
+    //     ERC20 transferToken = ERC20(_tokenAddress);
+    //     require(transferToken.balanceOf(address(this))>amount,"contract don't have enough token to transfer");
+    //     transferToken.transfer(reciever,amount);
+    // }
 }
