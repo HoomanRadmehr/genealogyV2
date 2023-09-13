@@ -12,7 +12,6 @@ contract Genealogy is Ownable, ReentrancyGuard {
     using strings for *;
     struct Partner {
         uint256 position_id;
-        uint256 upline_position_id;
         address wallet_address;
         string ebr_code;
         string direction; // left or right of the upline
@@ -85,9 +84,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
     uint256 position_id_from_ebr_code;
     uint256 partnerCount;
     uint256[] position_ids;
-    uint256 upline_position_id;
     address _owner;
-    uint256 new_position_id;
     address public StakingContractAddress;
     address public DappTokenContractAddress;
     address[] walletAddresses;
@@ -99,7 +96,6 @@ contract Genealogy is Ownable, ReentrancyGuard {
         StakingContractAddress = stakeContractAddress;
         DappTokenContractAddress = dappTokenContractAddress;
         Partner memory partner = Partner(
-            0,
             0,
             msg.sender,
             "admin",
@@ -164,7 +160,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
 
     function getDirectionByPositionId(uint256 _position_id)
         internal
-        view
+        pure
         returns (string memory)
     {
         if (_position_id % 2 == 0) {
@@ -283,22 +279,16 @@ contract Genealogy is Ownable, ReentrancyGuard {
 
         string memory invited_ebr_code = parts[0];
         uint256 position_id = stringToUint(parts[2]);
-        require(
-            isValidPositionId(position_id) == false,
-            "1"
-        );
-        uint256 upline_position_id = calcUplineFromPositionId(position_id);
-        string memory upline_ebr_code = partnersByPositionId[upline_position_id]
-            .ebr_code;
+        require(isValidPositionId(position_id) == false,"1");
+        string memory refferer_ebr_code = parts[1];
         if (position_id % 2 == 0) {
-            string memory direction = "r";
+            direction = "r";
         } else {
-            string memory direction = "l";
+            direction = "l";
         }
         uint256 balance = MyStakingBalance();
         Partner memory partner = Partner(
             position_id,
-            upline_position_id,
             msg.sender,
             invited_ebr_code,
             direction,
@@ -313,7 +303,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
         );
         // referral bonus
         uint256 _amount = (balance * 1) / 10;
-        string memory _ebr_code = parts[1];
+        string memory _ebr_code = refferer_ebr_code;
         Partner memory _referrer_partner = partnersByEbrCode[_ebr_code];
         address _referrer_partner_address = _referrer_partner.wallet_address;
         transferFromDappContract(_referrer_partner_address, _amount);
@@ -324,6 +314,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
         partnersByWalletAddress[msg.sender] = partner;
         updateUplinesChildsCount(position_id);
         updateUplinesFullFillLevel(position_id);
+        updateUplinesBalances(position_id, balance);
         partnerCount++;
         // return "successfully add partner";
     }
@@ -398,7 +389,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
         pure
         returns (uint256)
     {
-        if (_position_id == 1 || _position_id == 0) {
+        if (_position_id == 1 || _position_id == 0 || _position_id==2) {
             return 0;
         }
         if (_position_id % 2 == 0) {
@@ -424,10 +415,10 @@ contract Genealogy is Ownable, ReentrancyGuard {
             "isStaker(address)",
             msg.sender
         );
-        (bool success, bytes memory returnData) = StakingContractAddress.call(
+        (, bytes memory returnData) = StakingContractAddress.call(
             payload
         );
-        bool result = abi.decode(returnData, (bool));
+        result = abi.decode(returnData, (bool));
         return result;
     }
 
@@ -436,10 +427,10 @@ contract Genealogy is Ownable, ReentrancyGuard {
             "isStaker(address)",
             partner_wallet
         );
-        (bool success, bytes memory returnData) = StakingContractAddress.call(
+        (, bytes memory returnData) = StakingContractAddress.call(
             payload
         );
-        bool result = abi.decode(returnData, (bool));
+        result = abi.decode(returnData, (bool));
         return result;
     }
 
@@ -452,7 +443,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
             "getTotalUserStake(address)",
             _staker_addr
         );
-        (bool success, bytes memory returnData) = StakingContractAddress.call(
+        (, bytes memory returnData) = StakingContractAddress.call(
             payload
         );
         uint256 balance = abi.decode(returnData, (uint256));
@@ -464,7 +455,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
             "getTotalUserStake(address)",
             msg.sender
         );
-        (bool success, bytes memory returnData) = StakingContractAddress.call(
+        (, bytes memory returnData) = StakingContractAddress.call(
             payload
         );
         uint256 balance = abi.decode(returnData, (uint256));
@@ -499,8 +490,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
     }
 
     function updateUplinesBalances(uint256 _position_id, uint256 amount)
-        public
-        onlyOwner
+        internal
     {
         require(isValidPositionId(_position_id), "3");
         bool not_done = true;
@@ -539,11 +529,8 @@ contract Genealogy is Ownable, ReentrancyGuard {
                     updatePartner(partner);
                 }
                 uint256 previous_position_id = upline_position_id;
-                uint256 upline_position_id = calcUplineFromPositionId(
-                    upline_position_id
-                );
-                uint256 _position_id = upline_position_id;
-                if (_position_id == 0 && upline_position_id == 0) {
+                upline_position_id = calcUplineFromPositionId(upline_position_id);
+                if (upline_position_id == 0) {
                     Partner memory partner = partnersByPositionId[0];
                     if (previous_position_id == 1) {
                         uint256 old_balance = partner.sum_left_balance;
@@ -574,30 +561,21 @@ contract Genealogy is Ownable, ReentrancyGuard {
             updatePartner(partner);
         } else {
             while (not_done) {
-                Partner memory partner = partnersByPositionId[
-                    upline_position_id
-                ];
-                uint256 old_child_count = partner.childs_count;
-                uint256 new_child_count = old_child_count + 1;
-                partner.childs_count = new_child_count;
-                updatePartner(partner);
-                uint256 upline_position_id = calcUplineFromPositionId(
-                    upline_position_id
-                );
-                uint256 _position_id = upline_position_id;
-                if (_position_id == 0 && upline_position_id == 0) {
+                if (upline_position_id == 0) {
                     Partner memory partner = partnersByPositionId[0];
-                    uint256 old_child_count = partner.childs_count;
-                    uint256 new_child_count = old_child_count + 1;
-                    partner.childs_count = new_child_count;
+                    partner.childs_count = partner.childs_count + 1;
                     updatePartner(partner);
-                    not_done = false;
+                    break;
                 }
+                Partner memory partner = partnersByPositionId[upline_position_id];
+                partner.childs_count = partner.childs_count + 1;
+                updatePartner(partner);
+                upline_position_id = calcUplineFromPositionId(upline_position_id);
             }
         }
     }
 
-    function calcFirstLeftChild(uint256 _number) internal returns (uint256) {
+    function calcFirstLeftChild(uint256 _number) internal pure returns (uint256) {
         uint256 left_child = _number * 2 + 1;
         return left_child;
     }
@@ -634,7 +612,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
     }
     
     function getFullLevelByChildsCount(uint256 _childs_number)
-        internal
+        internal pure
         returns (uint256)
     {
         return log_2(_childs_number);
@@ -716,9 +694,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
                 uint256 new_level = FullFillLevel(0);
                 partner.full_fill_level = new_level;
                 updatePartner(partner);
-                uint256 upline_position_id = calcUplineFromPositionId(
-                    upline_position_id
-                );
+                upline_position_id = calcUplineFromPositionId(upline_position_id);
                 uint256 _position_id = upline_position_id;
                 if (_position_id == 0 && upline_position_id == 0) {
                     Partner memory partner = partnersByPositionId[0];
@@ -744,7 +720,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
             "getTotalUserRewards(address)",
             _staker_addr
         );
-        (bool success, bytes memory returnData) = StakingContractAddress.call(
+        (, bytes memory returnData) = StakingContractAddress.call(
             payload
         );
         uint256 reward = abi.decode(returnData, (uint256));
@@ -823,7 +799,7 @@ contract Genealogy is Ownable, ReentrancyGuard {
             "getTotalUserStake(address)",
             _staker_addr
         );
-        (bool success, bytes memory returnData) = StakingContractAddress.call(
+        (, bytes memory returnData) = StakingContractAddress.call(
             payload
         );
         uint256 _reward = abi.decode(returnData, (uint256)) / 10;
