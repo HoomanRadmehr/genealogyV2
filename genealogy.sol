@@ -662,6 +662,9 @@ contract Genealogy is Ownable, ReentrancyGuard {
                 i < assume_full_fill_level_partners.length;
                 i++
             ) {
+                if (assume_full_fill_level == 0){
+                    break;
+                }
                 Partner memory child_partner = partnersByPositionId[
                     assume_full_fill_level_partners[i]
                 ];
